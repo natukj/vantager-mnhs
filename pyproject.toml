@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "vantager-mnhs"
+version = "0.1.0"
+description = ""
+authors = ["qxd"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.11.10"
+asyncio = "^3.4.3"
+tiktoken = "^0.8.0"
+openai = "^1.51.2"
+tenacity = "^9.0.0"
+pydantic = "^2.9.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

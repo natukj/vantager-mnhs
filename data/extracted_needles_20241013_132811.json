@@ -1,0 +1,218 @@
+[
+  {
+    "name": "NeuraNet",
+    "location": "Atlantis City, Pacific Ocean",
+    "employee_count": 950,
+    "founding_year": 2022,
+    "is_public": null,
+    "valuation": 2.6,
+    "primary_focus": "neural interface technologies"
+  },
+  {
+    "name": "Ryoshi",
+    "location": "Neo Tokyo, Japan",
+    "employee_count": 1200,
+    "founding_year": 2031,
+    "is_public": false,
+    "valuation": 8.7,
+    "primary_focus": "quantum cryptography"
+  },
+  {
+    "name": "Vortex AI",
+    "location": "Neo London, Earth",
+    "employee_count": 1100,
+    "founding_year": 2038,
+    "is_public": false,
+    "valuation": 5.4,
+    "primary_focus": "predictive algorithms for financial markets"
+  },
+  {
+    "name": "Cenara Industries",
+    "location": "Arcadia, Venus",
+    "employee_count": 7500,
+    "founding_year": 2065,
+    "is_public": false,
+    "valuation": 10.1,
+    "primary_focus": "renewable energy systems"
+  },
+  {
+    "name": "StellarWave Technologies",
+    "location": "Enceladus Base, Saturn",
+    "employee_count": 1300,
+    "founding_year": 2055,
+    "is_public": false,
+    "valuation": 6.0,
+    "primary_focus": "interstellar communication"
+  },
+  {
+    "name": "Zenith Robotics",
+    "location": "Neo New York, Earth",
+    "employee_count": 10200,
+    "founding_year": 2027,
+    "is_public": true,
+    "valuation": null,
+    "primary_focus": "AI robotics"
+  },
+  {
+    "name": "Titanium Core Solutions",
+    "location": "Terra Nova, Mars",
+    "employee_count": 9000,
+    "founding_year": 2049,
+    "is_public": true,
+    "valuation": 11.7,
+    "primary_focus": "asteroid mining technologies"
+  },
+  {
+    "name": "NeuraSynth",
+    "location": "Rhea City, Saturn",
+    "employee_count": 800,
+    "founding_year": 2048,
+    "is_public": false,
+    "valuation": 2.1,
+    "primary_focus": "synthetic neural tissue research"
+  },
+  {
+    "name": "Cyberion Systems",
+    "location": "Olympus Mons, Mars",
+    "employee_count": 6700,
+    "founding_year": 2050,
+    "is_public": true,
+    "valuation": 12.9,
+    "primary_focus": "quantum networking"
+  },
+  {
+    "name": "AstraCom",
+    "location": "Hyperion City, Jupiter",
+    "employee_count": 7800,
+    "founding_year": 2075,
+    "is_public": true,
+    "valuation": 5.6,
+    "primary_focus": "deep-space communication systems"
+  },
+  {
+    "name": "Photonix Labs",
+    "location": "Solaris Base, Mercury",
+    "employee_count": 2100,
+    "founding_year": 2060,
+    "is_public": false,
+    "valuation": 7.2,
+    "primary_focus": "advanced photon-based computing systems"
+  },
+  {
+    "name": "Quantum Forge",
+    "location": "Orion City, Earth",
+    "employee_count": 12500,
+    "founding_year": 2030,
+    "is_public": true,
+    "valuation": 15.4,
+    "primary_focus": "quantum computing advancements"
+  },
+  {
+    "name": "Elysium Labs",
+    "location": "San Francisco, Earth",
+    "employee_count": 5001,
+    "founding_year": 2086,
+    "is_public": false,
+    "valuation": 7.2,
+    "primary_focus": "time-travel technologies"
+  },
+  {
+    "name": "Orbitix Systems",
+    "location": "Europa Station, Jupiter",
+    "employee_count": 1900,
+    "founding_year": 2058,
+    "is_public": true,
+    "valuation": 4.3,
+    "primary_focus": "satellite manufacturing"
+  },
+  {
+    "name": "Polaris Innovations",
+    "location": "Cloud City, Venus",
+    "employee_count": 1750,
+    "founding_year": 2035,
+    "is_public": false,
+    "valuation": null,
+    "primary_focus": "atmospheric energy harvesting"
+  },
+  {
+    "name": "ExoLab Solutions",
+    "location": "Borealis, Pluto",
+    "employee_count": 2400,
+    "founding_year": 2070,
+    "is_public": false,
+    "valuation": 3.1,
+    "primary_focus": "biotech research"
+  },
+  {
+    "name": "Elysium Labs",
+    "location": "Vesper City, Venus",
+    "employee_count": 1050,
+    "founding_year": 2068,
+    "is_public": false,
+    "valuation": 2.7,
+    "primary_focus": "anti-gravity technologies"
+  },
+  {
+    "name": "Galactica Energy",
+    "location": "Ceres Station, Asteroid Belt",
+    "employee_count": 3600,
+    "founding_year": 2062,
+    "is_public": false,
+    "valuation": 9.2,
+    "primary_focus": "fusion power generation"
+  },
+  {
+    "name": "TetraSol",
+    "location": "Helios, Titan",
+    "employee_count": 4100,
+    "founding_year": 2080,
+    "is_public": true,
+    "valuation": 8.3,
+    "primary_focus": "solar energy solutions"
+  },
+  {
+    "name": "ChronosTech",
+    "location": "New Shanghai, Earth",
+    "employee_count": 2800,
+    "founding_year": 2077,
+    "is_public": true,
+    "valuation": 6.2,
+    "primary_focus": "time-manipulation devices"
+  },
+  {
+    "name": "Nexus Technologies",
+    "location": "Nova Tokyo, Earth",
+    "employee_count": 8000,
+    "founding_year": 2043,
+    "is_public": true,
+    "valuation": 7.7,
+    "primary_focus": "immersive VR experiences"
+  },
+  {
+    "name": "Hyperion Solutions",
+    "location": "Olympia, Mars",
+    "employee_count": 3200,
+    "founding_year": 2025,
+    "is_public": false,
+    "valuation": 9.8,
+    "primary_focus": "machine learning advancements"
+  },
+  {
+    "name": "Elektra Corp",
+    "location": "Luna City, Moon",
+    "employee_count": 5000,
+    "founding_year": null,
+    "is_public": true,
+    "valuation": 13.5,
+    "primary_focus": "aerospace engineering"
+  },
+  {
+    "name": "Rovian",
+    "location": "New Berlin, Germany",
+    "employee_count": 800,
+    "founding_year": 2029,
+    "is_public": false,
+    "valuation": 5.2,
+    "primary_focus": "artificial intelligence"
+  }
+]
