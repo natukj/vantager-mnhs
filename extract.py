@@ -22,8 +22,40 @@ def get_schema(schema_name: str) -> Type[BaseModel]:
             return getattr(schemas_module, schema_name)
         except (ImportError, AttributeError):
             raise ValueError(f"Schema '{schema_name}' not found in utils or utils.schemas")
+        
+async def verify_needle(item: dict, chunk: str, verify_prompt: str) -> bool:
+    """
+    llm verification of extracted information.
 
-async def process_chunk(schema: Type[T], chunk: str, sys_prompt: str) -> List[T]:
+    Args:
+    item (dict): The extracted information.
+    chunk (str): The text chunk from which the information was extracted.
+    verify_prompt (str): The system prompt for verification.
+
+    Returns:
+    bool: True if the information is verified, False otherwise.
+    """
+    relevant_text = utils.get_relevant_text(chunk, item)
+    
+    messages = [
+        {"role": "system", "content": verify_prompt},
+        {"role": "user", "content": f"Text:\n{relevant_text}\n\nExtracted Information:\n{json.dumps(item, indent=2)}"}
+    ]
+    try:
+        response = await llm.openai_client_chat_completion_request(
+            messages, 
+            model="gpt-4o-mini", 
+            temperature=0.4,
+            response_format="text",
+            max_tokens=1
+        )
+        result = response.choices[0].message.content.strip().lower()
+        return result == 'true'
+    except Exception as e:
+        print(f"Error verifying needle: {e}")
+        return False
+
+async def process_chunk(schema: Type[T], chunk: str, sys_prompt: str, verify_prompt: str = None) -> List[T]:
     """
     extract a list of needles from a chunk of text using a given schema and openai structured output api.
 
@@ -49,7 +81,16 @@ async def process_chunk(schema: Type[T], chunk: str, sys_prompt: str) -> List[T]
                     temperature=0.6),
                 timeout=60
             )
-        return [schema(**{k: utils.clean_field(v) for k, v in item.dict().items()}) for item in result.items]
+        extracted_items = [schema(**{k: utils.clean_field(v) for k, v in item.dict().items()}) for item in result.items]
+        populated_items = [item for item in extracted_items if utils.has_any_populated_field(item)]
+        if verify_prompt:
+            verified_items = []
+            for item in populated_items:
+                if await verify_needle(item.model_dump(), chunk, verify_prompt):
+                    verified_items.append(item)
+            return verified_items
+        else:
+            return populated_items
     except asyncio.TimeoutError:
         print(f"Timeout processing chunk")
         return []
@@ -57,8 +98,11 @@ async def process_chunk(schema: Type[T], chunk: str, sys_prompt: str) -> List[T]
         print(f"Error processing chunk: {e}")
         return []
 
-async def process_chunks(schema: Type[T], chunks: List[str], sys_prompt: str) -> List[T]:
-    tasks = [process_chunk(schema, chunk, sys_prompt) for chunk in chunks]
+async def process_chunks(schema: Type[T], chunks: List[str], sys_prompt: str, verify_prompt: str = None) -> List[T]:
+    if verify_prompt:
+        tasks = [process_chunk(schema, chunk, sys_prompt, verify_prompt) for chunk in chunks]
+    else:
+        tasks = [process_chunk(schema, chunk, sys_prompt) for chunk in chunks]
     needles = []
     for future in tqdm.as_completed(tasks, desc="Extracting Needles"):
         try:
@@ -68,7 +112,7 @@ async def process_chunks(schema: Type[T], chunks: List[str], sys_prompt: str) ->
             print(f"Error in chunk processing: {e}")
     return needles
 
-async def extract_multi_needle(schema: Type[T], haystack: str, example_needles: List[str] = None) -> List[T]:
+async def extract_multi_needle(schema: Type[T], haystack: str, example_needles: List[str] = None, verify: bool = False) -> List[T]:
     """
     Extracts and structures information from a large text corpus based on a schema.
 
@@ -98,18 +142,25 @@ async def extract_multi_needle(schema: Type[T], haystack: str, example_needles: 
             model_name=model_name,
             fields=fields_str
         )
-    needles = await process_chunks(schema, chunks, sys_prompt)
+    if verify:
+        verify_prompt = utils.veryify_needle_sys.format(
+            model_name=model_name,
+            fields=fields_str
+        )
+        needles = await process_chunks(schema, chunks, sys_prompt, verify_prompt)
+    else:
+        needles = await process_chunks(schema, chunks, sys_prompt)
     
     for needle in needles:
         if utils.has_sufficient_populated_fields(needle, threshold=0.5):
-            needle_tuple = tuple(getattr(needle, field) for field in needle.__fields__)
+            needle_tuple = tuple(getattr(needle, field) for field in needle.model_fields)
             if needle_tuple not in unique_needles:
                 unique_needles.add(needle_tuple)
                 extracted_needles.append(needle)
     
     return extracted_needles
 
-async def main(text_file: str, schema_name: str, use_examples: bool, example_needles: List[str], remove_dialogue: bool):
+async def main(text_file: str, schema_name: str, use_examples: bool, example_needles: List[str], remove_dialogue: bool, verify: bool):
     with open(text_file, 'r') as f:
         text = f.read()
 
@@ -121,9 +172,9 @@ async def main(text_file: str, schema_name: str, use_examples: bool, example_nee
     schema = get_schema(schema_name)
 
     if use_examples:
-        extracted_needles = await extract_multi_needle(schema, filtered_text, example_needles)
+        extracted_needles = await extract_multi_needle(schema, filtered_text, example_needles, verify=verify)
     else:
-        extracted_needles = await extract_multi_needle(schema, filtered_text)
+        extracted_needles = await extract_multi_needle(schema, filtered_text, verify=verify)
     
     data_dir = os.path.join(os.getcwd(), 'data')
     os.makedirs(data_dir, exist_ok=True)
@@ -133,13 +184,13 @@ async def main(text_file: str, schema_name: str, use_examples: bool, example_nee
     file_path = os.path.join(data_dir, filename)
     
     with open(file_path, 'w') as f:
-        json.dump([needle.dict() for needle in extracted_needles], f, indent=2)
+        json.dump([needle.model_dump() for needle in extracted_needles], f, indent=2)
     
     print(f"Extracted needles saved to: {file_path}")
     print(f"Number of needles extracted: {len(extracted_needles)}")
     
     print("\nSample of extracted needles:")
-    print(json.dumps([needle.dict() for needle in extracted_needles[:3]], indent=2))
+    print(json.dumps([needle.model_dump() for needle in extracted_needles[:3]], indent=2))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extract structured information from text.")
@@ -148,10 +199,11 @@ if __name__ == "__main__":
     parser.add_argument("--use_examples", action="store_true", help="Use example needles")
     parser.add_argument("--examples", nargs="*", help="Example needles (use with --use_examples)")
     parser.add_argument("--remove_dialogue", action="store_true", help="Remove dialogue from the text")
+    parser.add_argument("--verify", action="store_true", help="Verify extracted information using LLM")
 
     args = parser.parse_args()
 
     if args.use_examples and not args.examples:
         parser.error("--use_examples requires at least one example needle")
 
-    asyncio.run(main(args.text_file, args.schema, args.use_examples, args.examples, args.remove_dialogue))
+    asyncio.run(main(args.text_file, args.schema, args.use_examples, args.examples, args.remove_dialogue, args.verify))

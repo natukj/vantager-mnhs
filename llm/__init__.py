@@ -1,1 +1,1 @@
-from .oai import openai_client_structured_completion_request
+from .oai import openai_client_structured_completion_request, openai_client_chat_completion_request

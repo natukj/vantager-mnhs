@@ -53,6 +53,7 @@ This will process the default text file located at `data/haystack.txt`.
 - `--use_examples`: Flag to use example needles
 - `--examples`: List of example needles (use with --use_examples)
 - `--remove_dialogue`: Flag to remove dialogue from the text before processing
+- `--verify`: Flag to enable LLM verification of extracted information
 
 ### Examples
 
@@ -72,6 +73,12 @@ poetry run python extract.py --use_examples --examples "Example 1" "Example 2"
 
 ```
 poetry run python extract.py --remove_dialogue
+```
+
+4. Enable LLM verification of extracted information:
+
+```
+poetry run python extract.py --verify
 ```
 
 ## Custom Schemas

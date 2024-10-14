@@ -100,3 +100,36 @@ def has_sufficient_populated_fields(obj, threshold=0.5):
     populated_fields = sum(1 for field in obj.__fields__ if clean_field(getattr(obj, field)) is not None)
     return populated_fields / total_fields >= threshold
 
+def get_relevant_text(chunk: str, item: dict, context_paragraphs: int = 3) -> str:
+    """
+    truncate the chunk around the item to provide context.
+
+    Args:
+    chunk (str): The text chunk.
+    item (dict): The extracted information.
+    context_paragraphs (int): The number of paragraphs to include before and after the matched text.
+
+    Returns:
+    str: The relevant text from the chunk.
+    """
+    paragraphs = [p.strip() for p in chunk.split('\n\n') if p.strip()]
+    relevant_texts = set()
+
+    for value in item.values():
+        if value:
+            escaped_value = re.escape(str(value))
+            pattern = re.compile(f".*{escaped_value}.*", re.IGNORECASE | re.DOTALL)
+            
+            for i, paragraph in enumerate(paragraphs):
+                if pattern.search(paragraph):
+                    start = max(0, i - context_paragraphs)
+                    end = min(len(paragraphs), i + context_paragraphs + 1)
+                    # ensure the context is at least 2 * context_paragraphs + 1 paragraphs
+                    while start > 0 and end - start < context_paragraphs * 2 + 1:
+                        start -= 1
+                    while end < len(paragraphs) and end - start < context_paragraphs * 2 + 1:
+                        end += 1
+                    
+                    context = '\n\n'.join(paragraphs[start:end])
+                    relevant_texts.add(context)
+    return '\n\n'.join(relevant_texts)
