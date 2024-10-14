@@ -1,17 +1,16 @@
 import os
 import json
+import csv
 import datetime
 import argparse
 from typing import List, Type, TypeVar
 from pydantic import BaseModel
 import asyncio
-from tqdm.asyncio import tqdm
+from tqdm.asyncio import tqdm_asyncio
 import importlib
 import llm, utils
 
 T = TypeVar('T', bound=BaseModel)
-
-semaphore = asyncio.Semaphore(100)
 
 def get_schema(schema_name: str) -> Type[BaseModel]:
     try:
@@ -50,6 +49,8 @@ async def verify_needle(item: dict, chunk: str, verify_prompt: str) -> bool:
             max_tokens=1
         )
         result = response.choices[0].message.content.strip().lower()
+        if result == 'false':
+            print(f"Verification failed for: {item}")
         return result == 'true'
     except Exception as e:
         print(f"Error verifying needle: {e}")
@@ -72,45 +73,34 @@ async def process_chunk(schema: Type[T], chunk: str, sys_prompt: str, verify_pro
         {"role": "user", "content": "Extract the information from the following:" "\n\n" + chunk}
     ]
     try:
-        async with semaphore:
-            result = await asyncio.wait_for(
-                llm.openai_client_structured_completion_request(
-                    messages, 
-                    utils.create_list_model(schema), 
-                    model="gpt-4o-2024-08-06", 
-                    temperature=0.6),
-                timeout=60
-            )
+        result = await llm.openai_client_structured_completion_request(
+            messages, 
+            utils.create_list_model(schema), 
+            model="gpt-4o-2024-08-06", 
+            temperature=0.6
+        )
         extracted_items = [schema(**{k: utils.clean_field(v) for k, v in item.dict().items()}) for item in result.items]
-        populated_items = [item for item in extracted_items if utils.has_any_populated_field(item)]
+        filtered_items = [item for item in extracted_items if utils.has_sufficient_populated_fields(item, threshold=0.5)]
         if verify_prompt:
             verified_items = []
-            for item in populated_items:
+            for item in filtered_items:
                 if await verify_needle(item.model_dump(), chunk, verify_prompt):
                     verified_items.append(item)
             return verified_items
         else:
-            return populated_items
-    except asyncio.TimeoutError:
-        print(f"Timeout processing chunk")
-        return []
+            return filtered_items
     except Exception as e:
         print(f"Error processing chunk: {e}")
         return []
 
 async def process_chunks(schema: Type[T], chunks: List[str], sys_prompt: str, verify_prompt: str = None) -> List[T]:
-    if verify_prompt:
-        tasks = [process_chunk(schema, chunk, sys_prompt, verify_prompt) for chunk in chunks]
-    else:
-        tasks = [process_chunk(schema, chunk, sys_prompt) for chunk in chunks]
-    needles = []
-    for future in tqdm.as_completed(tasks, desc="Extracting Needles"):
-        try:
-            result = await future
-            needles.extend(result)
-        except Exception as e:
-            print(f"Error in chunk processing: {e}")
-    return needles
+    semaphore = asyncio.Semaphore(300)
+    async def sem_task(chunk: str):
+        async with semaphore:
+            return await process_chunk(schema, chunk, sys_prompt, verify_prompt)
+    tasks = [sem_task(chunk) for chunk in chunks]
+    results = await tqdm_asyncio.gather(*tasks, desc="Extracting Needles")
+    return [item for result in results for item in result]
 
 async def extract_multi_needle(schema: Type[T], haystack: str, example_needles: List[str] = None, verify: bool = False) -> List[T]:
     """
@@ -129,7 +119,7 @@ async def extract_multi_needle(schema: Type[T], haystack: str, example_needles: 
     paragraphs = haystack.split('\n\n')
     chunks = utils.chunk_text(paragraphs)
     model_name, fields_description = utils.schema_to_descriptive_string(schema)
-    fields_str = "\n".join([f"{field}: {description}" for field, description in fields_description.items()])
+    fields_str = "\n".join([f"{field} {description}" for field, description in fields_description.items()])
     if example_needles:
         example_hidden_info = "\n".join(example_needles)
         sys_prompt = utils.struc_find_needle_sys.format(
@@ -152,7 +142,6 @@ async def extract_multi_needle(schema: Type[T], haystack: str, example_needles: 
         needles = await process_chunks(schema, chunks, sys_prompt)
     
     for needle in needles:
-        if utils.has_sufficient_populated_fields(needle, threshold=0.5):
             needle_tuple = tuple(getattr(needle, field) for field in needle.model_fields)
             if needle_tuple not in unique_needles:
                 unique_needles.add(needle_tuple)
@@ -180,17 +169,27 @@ async def main(text_file: str, schema_name: str, use_examples: bool, example_nee
     os.makedirs(data_dir, exist_ok=True)
     
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"extracted_needles_{schema_name}_{timestamp}.json"
-    file_path = os.path.join(data_dir, filename)
-    
-    with open(file_path, 'w') as f:
-        json.dump([needle.model_dump() for needle in extracted_needles], f, indent=2)
-    
-    print(f"Extracted needles saved to: {file_path}")
-    print(f"Number of needles extracted: {len(extracted_needles)}")
-    
+    save_json = False
+    if save_json:
+        # save extracted needles to a json file
+        filename = f"extracted_needles_{schema_name}_{timestamp}.json"
+        file_path = os.path.join(data_dir, filename)
+        with open(file_path, 'w') as f:
+            json.dump([needle.model_dump() for needle in extracted_needles], f, indent=2)
+        print(f"Extracted needles saved to: {file_path}")
+    # save extracted needles to a csv file
+    csv_filename = f"extracted_needles_{schema_name}_{timestamp}.csv"
+    csv_file_path = os.path.join(data_dir, csv_filename)
+    with open(csv_file_path, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=extracted_needles[0].model_fields.keys())
+        writer.writeheader()
+        for needle in extracted_needles:
+            writer.writerow(needle.model_dump())
     print("\nSample of extracted needles:")
     print(json.dumps([needle.model_dump() for needle in extracted_needles[:3]], indent=2))
+    print(f"Extracted needles saved to: {csv_file_path}")
+    print(f"Number of needles extracted: {len(extracted_needles)}")
+    
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extract structured information from text.")

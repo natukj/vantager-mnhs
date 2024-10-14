@@ -1,4 +1,5 @@
 from tenacity import retry, retry_if_exception_type, wait_random_exponential, stop_after_attempt
+import asyncio
 import openai
 from openai import AsyncOpenAI
 from typing import TypeVar, List, Type
@@ -30,10 +31,13 @@ async def openai_client_structured_completion_request(
         )
         return completion.choices[0].message.parsed
     except openai.APIError as e:
-        print(f"OpenAI API Error: {e}")
+        print(f"OpenAI structured API Error: {e}")
+        raise
+    except asyncio.TimeoutError as e:
+        print(f"TimeoutError in OpenAI structured API call: {e}")
         raise
     except Exception as e:
-        print(f"Error in OpenAI API call: {e}")
+        print(f"Error in OpenAI structured API call: {e}")
         raise
 
 @retry(
@@ -54,4 +58,10 @@ async def openai_client_chat_completion_request(messages, model="gpt-4o", temper
         return response
     except openai.APIError as e:
         print(f"OpenAI API Error: {e}")
+        raise
+    except asyncio.TimeoutError as e:
+        print(f"TimeoutError in OpenAI API call: {e}")
+        raise
+    except Exception as e:
+        print(f"Error in OpenAI API call: {e}")
         raise

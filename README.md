@@ -114,5 +114,5 @@ The script will save the extracted information as a JSON file in the `data` dire
 
 ## Notes
 
-- The script uses a semaphore to limit concurrent API calls to 100.
+- The script uses a semaphore to limit concurrent API calls to 300.
 - Extracted data is filtered to remove entries with insufficient information.
